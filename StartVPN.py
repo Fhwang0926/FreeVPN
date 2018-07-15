@@ -1,4 +1,4 @@
-import requests, re, os, sys
+import requests, re, os, sys, time
 from bs4 import BeautifulSoup
 
 
@@ -30,7 +30,11 @@ class OpenVPN:
                 cmd += '-ServerAddress "'+self.accountInfo['host']+'" '
                 cmd += '-TunnelType "PPTP" '
                 cmd += '-EncryptionLevel "Required" '
-                cmd += '-SplitTunneling -AuthenticationMethod MsChapv2 -RememberCredential -Force -PassThru'
+                cmd += '-SplitTunneling'
+                # cmd += '-Force'
+                # cmd += '-RememberCredential' # this option no get gateway from vpn server
+                cmd += '-AuthenticationMethod MsChapv2'
+                cmd += '-PassThru'
 
                 if os.system("rasdial "+vpnName) == 623: os.system("powershell " + cmd)
                 connectcmd = "rasdial "+ vpnName + ' "' + self.accountInfo['id'] + '" "' + self.accountInfo['pw']+'"'
@@ -52,6 +56,12 @@ class OpenVPN:
 
     def removeTag(self, x):
         return re.sub(r'<b>|</b>|</li|>|<', '', x)
+
+    def disconnect(self):
+        return os.system("rasdial /disconnect")
+
+    def removeVPN(self, x):
+        pass
 
 proc = OpenVPN()
 proc.connect()
