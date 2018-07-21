@@ -1,7 +1,6 @@
-import re, os, sys, time
+import requests, re, os, sys, time
 from bs4 import BeautifulSoup
-from requests_html import HTMLSession as requests
-
+# freevpn
 
 class OpenVPN:
 
@@ -9,37 +8,31 @@ class OpenVPN:
         self.accountInfo = {}
         self.data = []
         self.reg = re.compile(r'(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)|(Username:.+li)|(Password:.+li)')
-        self.freeVpn = []
-        self.updateServerList()
-        self.connect = False
+        self.regUrl = re.compile(r'https?://(www.)?freevpn\..*\.?[a-zA-Z]$')
+        self.homepages = []
+        self.getHtml()
         pass
 
-    def fullURL(self, x):
-        return "https://www.freevpn."+x+"/accounts/"
-
-    def updateServerList(self):
-        self.getInfo(self.fullURL("en"))
-        # for server  in self.freevpn:
-        #         self.getInfo(self.fullURL(server))        
-        # if len(self.freevpn) > 0:
-            
-        # else:
-            
-
-
-    def getInfo(self, url):
-        c = requests()
-        rs = c.get(url)
+    def getHtml(self):    
+        rs = requests.get("https://freevpn.me/accounts/", verify=False)
         if rs.status_code != 200: raise ValueError
-        # soup = BeautifulSoup(rs.text, 'html.parser')
-        # for x in soup.find_all('li'):
-        for x in rs.html.links:
-            if ":" in str(x):
-                for y in x.find_all('a'):
-                    # self.freeVpn.append(y['href'])
-                    print(y['href'].split("."))
-                self.getAccountInfo(str(x))
 
+        soup = BeautifulSoup(rs.text, 'html.parser')
+        for x in soup.find_all('a'):
+            try:
+                rs = self.regUrl.search(x["href"]).group()
+                if not "zip" in rs:
+                    self.homepages.append(rs)
+            except:
+                pass
+        for url in self.homepages:
+            print("[+] checkVPN : ", url)
+            rs = requests.get(url)
+            if rs.status_code != 200: raise ValueError
+            soup = BeautifulSoup(rs.text, 'html.parser')
+            for x in soup.find_all('li'):
+                if ":" in x: self.getAccountInfo(x)
+            pass
 
     def connect(self, vpnName=''):
         try:
@@ -79,11 +72,14 @@ class OpenVPN:
 
     def getAccountInfo(self,  data):
         rs = self.reg.findall(data)
+        print(rs)
         self.accountInfo['id'] = "pptp"
         for x in rs:
+            print(rs)
             if x[0]: self.accountInfo.update({'host' : self.removeTag(x[0])})
             # if x[1]: self.accountInfo.update({'id': self.removeTag(x[1]).split(':')[1].strip()})
             if x[2]: self.accountInfo.update({'pw': self.removeTag(x[2]).split(':')[1].strip()})
+        print(self.accountInfo)
 
     def removeTag(self, x=''):
         return re.sub(r'<b>|</b>|</li|>|<', '', x)
