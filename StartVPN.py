@@ -1,6 +1,14 @@
-import requests, re, os, sys, time, uuid
+import requests, re, os, sys, time, uuid, ping
 from bs4 import BeautifulSoup
-# freevpn
+from os import *
+
+#Thankyou for "https://freevpn.me"
+
+#
+#auther : ZED
+# reference
+# https://www.tenforums.com/tutorials/90305-set-up-add-vpn-connection-windows-10-a.html
+# https://docs.microsoft.com/en-us/powershell/module/vpnclient/set-vpnconnectiontriggerdnsconfiguration?view=win10-ps
 
 class OpenVPN:
 
@@ -8,15 +16,12 @@ class OpenVPN:
         self.account = {}
         self.homepages = []
         self.reg = re.compile(r'(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)|(Username:.+li)|(Password:.+li)')
-        # self.reg = re.compile(r'(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)|(:<\/b>.+<)|(:<\/b>.+<)')
         self.regUrl = re.compile(r'https?://(www.)?freevpn\..*\.?[a-zA-Z]$')
         self.getServerList()
-        self.log = []
-
-        pass
+        self.netChecker = ping.PING()
 
     def getServerList(self):
-        rs = requests.get("https://freevpn.se/accounts/", verify=False)
+        rs = requests.get("https://freevpn.me/accounts/", verify=False)
         if rs.status_code != 200: raise ValueError
 
         soup = BeautifulSoup(rs.text, 'html.parser')
@@ -39,16 +44,31 @@ class OpenVPN:
         soup = BeautifulSoup(rs.text, 'html.parser')
         self.account['id'] = "pptp"
         for x in soup.find_all('li'):
-            if len(self.account.keys()) == 3: return
             try:
-                rs = self.reg.search(str(x)).group().split(' ')
-                if len(rs) > 1:
-                    if "Password" in rs[0]: self.account.update({ 'pw' : rs[1].replace("</li", '') })
-                else:
-                    if self.account['host'] =='': self.account.update({'host': rs[0] })
+                rs = self.reg.search(str(x)).group().split(" ")
+                if "Password" in rs[0] and self.account['pw'] == '': self.account.update({ 'pw' : rs[1].replace("</li", '') })
+                elif self.account['host'] =='' and len(rs) == 1: self.account.update({'host': rs[0] })
             except:
                 pass
-            return
+
+    def disconnect(self, vpnName='', all=False):
+        if all:
+            return os.system("rasdial /disconnect")
+        else:
+            return os.system("rasdial "+vpnName+" /disconnect")
+        
+    def removeVPN(self, vpnName=''):
+        cmd = 'Remove-VpnConnection '
+        cmd += '-Force '+vpnName
+        return os.system("powershell " + cmd)
+        
+    def getPublicIP(self):
+        rs = requests.get("http://www.findip.kr/where.php", verify=False)
+        if rs.status_code != 200: raise ValueError
+        soup = BeautifulSoup(rs.text, 'html.parser')
+        for x in soup.find_all("input"):
+            if x['id'] == "ip": return x['value']
+
 
     def connect(self, vpnName=''):
         try:
@@ -58,51 +78,44 @@ class OpenVPN:
                 print("Disconnecting All VPN's")
                 if "win" in sys.platform:
 
-                    os.system("rasdial /disconnect")
+                    self.disconnect(all=True);
 
                     cmd = 'Add-VpnConnection '
                     cmd += '-Name "'+vpnName+'" '
                     cmd += '-ServerAddress "'+self.account['host']+'" '
                     cmd += '-TunnelType "PPTP" '
                     cmd += '-EncryptionLevel "Required" '
-                    cmd += '-SplitTunneling '
-                    cmd += '-Force '
-                    # cmd += '-RememberCredential' # this option no get gateway from vpn server
+                    # cmd += '-SplitTunneling '
+                    # cmd += '-Force '
+                    cmd += '-RememberCredential ' # this option no get gateway from vpn server
                     cmd += '-AuthenticationMethod MsChapv2 '
                     cmd += '-PassThru'
 
                     checkVPN = os.system("rasdial " + vpnName)
                     if checkVPN == 623 or checkVPN ==0: os.system("powershell " + cmd)
                     connectcmd = "rasdial "+ vpnName + ' "' + self.account['id'] + '" "' + self.account['pw']+'"'
-                    self.log.append(url+" | "+self.account['host']+" | "+connectcmd)
-                    print(url, "|", self.account['host'], " | ", connectcmd)
-                    if os.system(connectcmd) == 807: self.removeVPN(vpnName); print("Re connectting... "); continue
-                    print("connected!")
-                    # try:python3 s
-                if not "win" in sys.platform:
-                    print("This OS is Linux, not support")
+                    connectCode = os.system(connectcmd)
 
+                    if connectCode == 807: self.removeVPN(vpnName); print("Re connectting... "); continue
+                    elif proc.getPublicIP() == self.account['host']: print("connected!");
+                    else: print("conneciton Failed")
+                    try:
+                        os.system("cls")
+                        self.netChecker.run_th_ping("8.8.8.8")
+                    except KeyboardInterrupt:
+                        self.disconnect()
+                        self.removeVPN(vpnName)
+                        print("Disconnected!! & Remove VPN")
+                        sys.exit(1)
+
+                if not "win" in sys.platform:
+                    print("This OS is Not Windows, not ready to support")
+                return
         except Exception as e:
             print("connect error : ", e)
 
-    def disconnect(self, x=''):
-        print("rasdial "+( x if x else self.vpnName)+" /disconnect");
-        return os.system("rasdial "+( x if x else self.vpnName)+" /disconnect")
+if __name__ == '__main__':
+    proc = OpenVPN()
+    proc.connect()
 
-    def removeVPN(self, x=''):
-        name = x if x else self.vpnName
-        cmd = 'Remove-VpnConnection '
-        cmd += '-Force '+name
-        print(os.system("powershell " + cmd))
-        # if os.system("rasdial "+name) == 623: return
-        return False
-        pass
-    def showlog(self):
-        for x in self.log:
-            print(x)
-proc = OpenVPN()
-proc.connect()
-proc.showlog()
-# reference
-# https://www.tenforums.com/tutorials/90305-set-up-add-vpn-connection-windows-10-a.html
-# https://docs.microsoft.com/en-us/powershell/module/vpnclient/set-vpnconnectiontriggerdnsconfiguration?view=win10-ps
+
