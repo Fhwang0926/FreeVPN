@@ -103,10 +103,20 @@ class OpenVPN:
                         os.system("cls")
                         self.netChecker.run_th_ping("8.8.8.8")
                     except KeyboardInterrupt:
+                        print("Start disconnectiong.....wait for")
                         self.disconnect()
                         self.removeVPN(vpnName)
                         print("Disconnected!! & Remove VPN")
                         sys.exit(1)
+                    except Exception as e:
+                        print("Error : ", e)
+                        print("Start disconnectiong.....wait for")
+                        self.disconnect()
+                        self.removeVPN(vpnName)
+                        print("Disconnected!! & Remove VPN")
+                        sys.exit(1)
+                    finally:
+                        print("exit")
 
                 if not "win" in sys.platform:
                     print("This OS is Not Windows, not ready to support")
