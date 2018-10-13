@@ -143,7 +143,7 @@ class OpenVPN:
                     else:
                         if not Path("/usr/sbin/pptpsetup").exists(): system("apt update && apt install pptp-linux && apt autoremove")
                         print("[+] Start connecting FreeVPN")
-                        system("pptpsetup --create {0} --server {1} --username pptp --password {2} --start --encrypt".format(vpnName, self.account['host'], self.account['pw']))
+                        system("sudo pptpsetup --create {0} --server {1} --username pptp --password {2} --start --encrypt".format(vpnName, self.account['host'], self.account['pw']))
                         setRouteCmd = "DI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
                         setRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
                         setRouteCmd += "VPNI=`route -n | egrep -v UGH | grep UH | awk '{print $8}'` && "
@@ -160,7 +160,7 @@ class OpenVPN:
 
                         try:
                             system("clear")
-                            self.netChecker.run_th_ping("8.8.8.8")
+                            system("ping 8.8.8.8")
                         except KeyboardInterrupt as e:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
