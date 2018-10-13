@@ -1,7 +1,7 @@
-import requests, re, os, sys, time, uuid, ping
+import requests, re, os, sys, time, uuid, ping, subprocess
 from bs4 import BeautifulSoup
 from os import *
-
+from pathlib import Path
 #Thankyou for "https://freevpn.me"
 
 #
@@ -72,57 +72,73 @@ class OpenVPN:
 
     def connect(self, vpnName=''):
         try:
-            for url in self.homepages:
-                vpnName = vpnName if vpnName else str(uuid.uuid4()).split("-")[4]
-                self.updateAccount(url)
-                print("Disconnecting All VPN's")
-                if "win" in sys.platform:
+            # start windows
+            if "win" in sys.platform:
+                system("echo off")
+                for url in self.homepages:
+                    vpnName = vpnName if vpnName else str(uuid.uuid4()).split("-")[4]
+                    self.updateAccount(url)
+                    print("Disconnecting All VPN's")
+                    
+                    if "win" in sys.platform:
+                        self.disconnect(all=True)
+                        cmd = 'Add-VpnConnection '
+                        cmd += '-Name "'+vpnName+'" '
+                        cmd += '-ServerAddress "'+self.account['host']+'" '
+                        cmd += '-TunnelType "PPTP" '
+                        cmd += '-EncryptionLevel "Required" '
+                        # cmd += '-SplitTunneling '
+                        # cmd += '-Force '
+                        cmd += '-RememberCredential ' # this option no get gateway from vpn server
+                        cmd += '-AuthenticationMethod MsChapv2 '
+                        cmd += '-PassThru'
 
-                    self.disconnect(all=True);
+                        checkVPN = os.system("rasdial " + vpnName)
+                        if checkVPN == 623 or checkVPN ==0: os.system("powershell " + cmd)
+                        connectcmd = "rasdial "+ vpnName + ' "' + self.account['id'] + '" "' + self.account['pw']+'"'
+                        connectCode = os.system(connectcmd)
 
-                    cmd = 'Add-VpnConnection '
-                    cmd += '-Name "'+vpnName+'" '
-                    cmd += '-ServerAddress "'+self.account['host']+'" '
-                    cmd += '-TunnelType "PPTP" '
-                    cmd += '-EncryptionLevel "Required" '
-                    # cmd += '-SplitTunneling '
-                    # cmd += '-Force '
-                    cmd += '-RememberCredential ' # this option no get gateway from vpn server
-                    cmd += '-AuthenticationMethod MsChapv2 '
-                    cmd += '-PassThru'
-
-                    checkVPN = os.system("rasdial " + vpnName)
-                    if checkVPN == 623 or checkVPN ==0: os.system("powershell " + cmd)
-                    connectcmd = "rasdial "+ vpnName + ' "' + self.account['id'] + '" "' + self.account['pw']+'"'
-                    connectCode = os.system(connectcmd)
-
-                    if connectCode == 807: self.removeVPN(vpnName); print("Re connectting... "); continue
-                    elif proc.getPublicIP() == self.account['host']: print("connected!");
-                    else: print("conneciton Failed")
-                    try:
-                        os.system("cls")
-                        self.netChecker.run_th_ping("8.8.8.8")
-                    except KeyboardInterrupt:
-                        print("Start disconnectiong.....wait for")
-                        self.disconnect()
-                        self.removeVPN(vpnName)
-                        print("Disconnected!! & Remove VPN")
-                        sys.exit(1)
-                    except Exception as e:
-                        print("Error : ", e)
-                        print("Start disconnectiong.....wait for")
-                        self.disconnect()
-                        self.removeVPN(vpnName)
-                        print("Disconnected!! & Remove VPN")
-                        sys.exit(1)
-                    finally:
-                        print("exit")
-
-                if not "win" in sys.platform:
-                    print("This OS is Not Windows, not ready to support")
-                return
+                        if connectCode == 807: self.removeVPN(vpnName); print("Re connectting... "); continue
+                        elif proc.getPublicIP() == self.account['host']: print("connected!")
+                        else: print("conneciton Failed")
+                        try:
+                            os.system("cls")
+                            self.netChecker.run_th_ping("8.8.8.8")
+                        except KeyboardInterrupt:
+                            print("Start disconnectiong.....wait for")
+                            self.disconnect()
+                            self.removeVPN(vpnName)
+                            print("Disconnected!! & Remove VPN")
+                            sys.exit(1)
+                        except Exception as e:
+                            print("Error : ", e)
+                            print("Start disconnectiong.....wait for")
+                            self.disconnect()
+                            self.removeVPN(vpnName)
+                            print("Disconnected!! & Remove VPN")
+                            sys.exit(1)
+                        finally:
+                            print("exit")
+            else:
+                # start linux
+                if self.prompt_sudo() != 0:
+                    print("the user wasn't authenticated as a sudoer")
+                    sys.exit(0)
+                else:
+                    # if not Path("/usr/sbin/pptp").exists(): system("apt update && apt install pptpd && apt autoremove")
+                    # if not Path("/usr/sbin/pptp").exists(): system("apt install net-tools")
+                    print("[+] Start connecting FreeVPN")
+                    
         except Exception as e:
             print("connect error : ", e)
+    
+    # linux function area
+    def prompt_sudo(self):
+        ret = 0
+        if geteuid() != 0:
+            msg = "[sudo] password for %u:"
+            ret = subprocess.check_call("sudo -v -p '%s'" % msg, shell=True)
+        return ret
 
 if __name__ == '__main__':
     proc = OpenVPN()
