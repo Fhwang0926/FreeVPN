@@ -156,12 +156,12 @@ class OpenVPN:
 
                         setRouteCmd += "sudo route add default gw $VPNGW  dev $VPNI && "
                         setRouteCmd += "sudo route del default gw $DGW dev $DI"
-                        print("error code : ", system(setRouteCmd))
-                        sys.exit(0)
+                        print("error code : ", )
+                        if system(setRouteCmd) > 0: continue
 
                         try:
-                            # system("clear")
-                            # system("ping 8.8.8.8")
+                            system("clear")
+                            system("ping 8.8.8.8")
                         except KeyboardInterrupt as e:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
