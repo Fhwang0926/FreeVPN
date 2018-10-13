@@ -161,7 +161,7 @@ class OpenVPN:
                         if system(setRouteCmd) > 0: continue
                         try:
                             system("clear")
-                            system("ping 8.8.8.8")
+                            self.netChecker.run_th_ping("8.8.8.8")
                         except Exception as e:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
@@ -170,7 +170,6 @@ class OpenVPN:
                             print("Disconnected!! & Remove VPN")
                             sys.exit(0)
                         finally:
-                            print("Error : ", e)
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
                             self.removeVPN(vpnName)
