@@ -68,8 +68,8 @@ class OpenVPN:
             removeRouteCmd += "echo VPNI: $VPNI && "
             removeRouteCmd += "echo VPNGW: $VPNGW && "
 
-            removeRouteCmd += "route add default gw $DGW dev $DI && "
-            removeRouteCmd += "route del default gw $VPNGW dev $VPNI"
+            removeRouteCmd += "sudo route add default gw $DGW dev $DI && "
+            removeRouteCmd += "sudo route del default gw $VPNGW dev $VPNI"
 
             system(removeRouteCmd)
         
@@ -154,8 +154,8 @@ class OpenVPN:
                         setRouteCmd += "echo VPNI: $VPNI && "
                         setRouteCmd += "echo VPNGW: $VPNGW && "
 
-                        setRouteCmd += "route add default gw $VPNGW  dev $VPNI && "
-                        setRouteCmd += "route del default gw $DGW dev $DI"
+                        setRouteCmd += "sudo route add default gw $VPNGW  dev $VPNI && "
+                        setRouteCmd += "sudo route del default gw $DGW dev $DI"
                         system(setRouteCmd)
 
                         try:
