@@ -52,59 +52,117 @@ class OpenVPN:
                 pass
 
     def disconnect(self, vpnName='', all=False):
-        if all:
-            return os.system("rasdial /disconnect")
+        if "win" in sys.platform:
+            if all:
+                return system("rasdial /disconnect")
+            else:
+                return system("rasdial "+vpnName+" /disconnect")
         else:
-            return os.system("rasdial "+vpnName+" /disconnect")
+            removeRouteCmd = "VPNI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
+            removeRouteCmd += "VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $2}'` && "
+            removeRouteCmd += "DI=`route -n | grep UGH | awk '{print $8}'` && "
+            removeRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
+
+            removeRouteCmd += "echo DI: $DI && "
+            removeRouteCmd += "echo DGW: $DGW && "
+            removeRouteCmd += "echo VPNI: $VPNI && "
+            removeRouteCmd += "echo VPNGW: $VPNGW && "
+
+            removeRouteCmd += "route add default gw $DGW dev $DI && "
+            removeRouteCmd += "route del default gw $VPNGW dev $VPNI"
+
+            system(removeRouteCmd)
         
     def removeVPN(self, vpnName=''):
-        cmd = 'Remove-VpnConnection '
-        cmd += '-Force '+vpnName
-        return os.system("powershell " + cmd)
-        
+        if "win" in sys.platform:
+            cmd = 'Remove-VpnConnection '
+            cmd += '-Force '+vpnName
+            return system("powershell " + cmd)
+        else:
+            return system("killall pppd")
     def getPublicIP(self):
         rs = requests.get("http://www.findip.kr/where.php", verify=False)
         if rs.status_code != 200: raise ValueError
         soup = BeautifulSoup(rs.text, 'html.parser')
         for x in soup.find_all("input"):
             if x['id'] == "ip": return x['value']
-
-
+    
     def connect(self, vpnName=''):
         try:
             # start windows
-            if "win" in sys.platform:
-                system("echo off")
-                for url in self.homepages:
-                    vpnName = vpnName if vpnName else str(uuid.uuid4()).split("-")[4]
-                    self.updateAccount(url)
-                    print("Disconnecting All VPN's")
-                    
-                    if "win" in sys.platform:
-                        self.disconnect(all=True)
-                        cmd = 'Add-VpnConnection '
-                        cmd += '-Name "'+vpnName+'" '
-                        cmd += '-ServerAddress "'+self.account['host']+'" '
-                        cmd += '-TunnelType "PPTP" '
-                        cmd += '-EncryptionLevel "Required" '
-                        # cmd += '-SplitTunneling '
-                        # cmd += '-Force '
-                        cmd += '-RememberCredential ' # this option no get gateway from vpn server
-                        cmd += '-AuthenticationMethod MsChapv2 '
-                        cmd += '-PassThru'
+            system("echo off")
+            for url in self.homepages:
+                vpnName = vpnName if vpnName else str(uuid.uuid4()).split("-")[4]
+                self.updateAccount(url)
+                print("Disconnecting All VPN's")
+                
+                if "win" in sys.platform:
+                    self.disconnect(all=True)
+                    cmd = 'Add-VpnConnection '
+                    cmd += '-Name "'+vpnName+'" '
+                    cmd += '-ServerAddress "'+self.account['host']+'" '
+                    cmd += '-TunnelType "PPTP" '
+                    cmd += '-EncryptionLevel "Required" '
+                    # cmd += '-SplitTunneling '
+                    # cmd += '-Force '
+                    cmd += '-RememberCredential ' # this option no get gateway from vpn server
+                    cmd += '-AuthenticationMethod MsChapv2 '
+                    cmd += '-PassThru'
 
-                        checkVPN = os.system("rasdial " + vpnName)
-                        if checkVPN == 623 or checkVPN ==0: os.system("powershell " + cmd)
-                        connectcmd = "rasdial "+ vpnName + ' "' + self.account['id'] + '" "' + self.account['pw']+'"'
-                        connectCode = os.system(connectcmd)
+                    checkVPN = system("rasdial " + vpnName)
+                    if checkVPN == 623 or checkVPN ==0: system("powershell " + cmd)
+                    connectcmd = "rasdial "+ vpnName + ' "' + self.account['id'] + '" "' + self.account['pw']+'"'
+                    connectCode = system(connectcmd)
 
-                        if connectCode == 807: self.removeVPN(vpnName); print("Re connectting... "); continue
-                        elif proc.getPublicIP() == self.account['host']: print("connected!")
-                        else: print("conneciton Failed")
+                    if connectCode == 807: self.removeVPN(vpnName); print("Re connectting... "); continue
+                    elif proc.getPublicIP() == self.account['host']: print("connected!")
+                    else: print("conneciton Failed")
+                    try:
+                        system("cls")
+                        self.netChecker.run_th_ping("8.8.8.8")
+                    except KeyboardInterrupt:
+                        print("Start disconnectiong.....wait for")
+                        self.disconnect()
+                        self.removeVPN(vpnName)
+                        print("Disconnected!! & Remove VPN")
+                        sys.exit(1)
+                    except Exception as e:
+                        print("Error : ", e)
+                        print("Start disconnectiong.....wait for")
+                        self.disconnect()
+                        self.removeVPN(vpnName)
+                        print("Disconnected!! & Remove VPN")
+                        sys.exit(1)
+                    finally:
+                        print("exit")
+                else:
+                    # start linux
+                    if self.prompt_sudo() != 0:
+                        print("the user wasn't authenticated as a sudoer")
+                        sys.exit(0)
+                    else:
+                        if not Path("/usr/sbin/pptpsetup").exists(): system("apt update && apt install pptp-linux && apt autoremove")
+                        print("[+] Start connecting FreeVPN")
+                        system("pptpsetup --create {0} --server {1} --username pptp --password {2} --start --encrypt".format(vpnName, self.account['host'], self.account['pw']))
+                        setRouteCmd = "DI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
+                        setRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
+                        setRouteCmd += "VPNI=`route -n | egrep -v UGH | grep UH | awk '{print $8}'` && "
+                        setRouteCmd += "VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $1}'` && "
+
+                        setRouteCmd += "echo DI: $DI && "
+                        setRouteCmd += "echo DGW: $DGW && "
+                        setRouteCmd += "echo VPNI: $VPNI && "
+                        setRouteCmd += "echo VPNGW: $VPNGW && "
+
+                        setRouteCmd += "route add default gw $VPNGW  dev $VPNI && "
+                        setRouteCmd += "route del default gw $DGW dev $DI"
+                        system(setRouteCmd)
+
                         try:
-                            os.system("cls")
+                            system("clear")
                             self.netChecker.run_th_ping("8.8.8.8")
-                        except KeyboardInterrupt:
+                        except KeyboardInterrupt as e:
+                            print("Error : ", e)
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
                             self.removeVPN(vpnName)
@@ -119,16 +177,6 @@ class OpenVPN:
                             sys.exit(1)
                         finally:
                             print("exit")
-            else:
-                # start linux
-                if self.prompt_sudo() != 0:
-                    print("the user wasn't authenticated as a sudoer")
-                    sys.exit(0)
-                else:
-                    # if not Path("/usr/sbin/pptp").exists(): system("apt update && apt install pptpd && apt autoremove")
-                    # if not Path("/usr/sbin/pptp").exists(): system("apt install net-tools")
-                    print("[+] Start connecting FreeVPN")
-                    
         except Exception as e:
             print("connect error : ", e)
     
