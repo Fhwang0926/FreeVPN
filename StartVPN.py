@@ -72,6 +72,7 @@ class OpenVPN:
             removeRouteCmd += "sudo route del default gw $VPNGW dev $VPNI"
 
             system(removeRouteCmd)
+            self.removeVPN()
         
     def removeVPN(self, vpnName=''):
         if "win" in sys.platform:
@@ -172,7 +173,7 @@ class OpenVPN:
                         finally:
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
-                            self.removeVPN(vpnName)
+                            # self.removeVPN(vpnName)
                             print("Disconnected!! & Remove VPN")
                             print("exit")
                             sys.exit(0)
