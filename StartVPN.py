@@ -135,6 +135,7 @@ class OpenVPN:
                         sys.exit(0)
                     finally:
                         print("exit")
+                        sys.exit(0)
                 else:
                     # start linux
                     if self.prompt_sudo() != 0:
@@ -158,17 +159,9 @@ class OpenVPN:
                         setRouteCmd += "sudo route del default gw $DGW dev $DI"
                         print("error code : ", )
                         if system(setRouteCmd) > 0: continue
-
                         try:
                             system("clear")
                             system("ping 8.8.8.8")
-                        except KeyboardInterrupt as e:
-                            print("Error : ", e)
-                            print("Start disconnectiong.....wait for")
-                            self.disconnect()
-                            self.removeVPN(vpnName)
-                            print("Disconnected!! & Remove VPN")
-                            sys.exit(0)
                         except Exception as e:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
@@ -177,7 +170,13 @@ class OpenVPN:
                             print("Disconnected!! & Remove VPN")
                             sys.exit(0)
                         finally:
+                            print("Error : ", e)
+                            print("Start disconnectiong.....wait for")
+                            self.disconnect()
+                            self.removeVPN(vpnName)
+                            print("Disconnected!! & Remove VPN")
                             print("exit")
+                            sys.exit(0)
         except Exception as e:
             print("connect error : ", e)
     
