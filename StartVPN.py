@@ -125,14 +125,14 @@ class OpenVPN:
                         self.disconnect()
                         self.removeVPN(vpnName)
                         print("Disconnected!! & Remove VPN")
-                        sys.exit(1)
+                        sys.exit(0)
                     except Exception as e:
                         print("Error : ", e)
                         print("Start disconnectiong.....wait for")
                         self.disconnect()
                         self.removeVPN(vpnName)
                         print("Disconnected!! & Remove VPN")
-                        sys.exit(1)
+                        sys.exit(0)
                     finally:
                         print("exit")
                 else:
@@ -156,25 +156,26 @@ class OpenVPN:
 
                         setRouteCmd += "sudo route add default gw $VPNGW  dev $VPNI && "
                         setRouteCmd += "sudo route del default gw $DGW dev $DI"
-                        system(setRouteCmd)
+                        print("error code : ", system(setRouteCmd))
+                        sys.exit(0)
 
                         try:
-                            system("clear")
-                            system("ping 8.8.8.8")
+                            # system("clear")
+                            # system("ping 8.8.8.8")
                         except KeyboardInterrupt as e:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
                             self.removeVPN(vpnName)
                             print("Disconnected!! & Remove VPN")
-                            sys.exit(1)
+                            sys.exit(0)
                         except Exception as e:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
                             self.removeVPN(vpnName)
                             print("Disconnected!! & Remove VPN")
-                            sys.exit(1)
+                            sys.exit(0)
                         finally:
                             print("exit")
         except Exception as e:
