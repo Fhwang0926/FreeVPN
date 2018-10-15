@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import requests, re, os, sys, time, uuid, ping, subprocess
 from bs4 import BeautifulSoup
 from os import *
 from pathlib import Path
+import subprocess
 #Thankyou for "https://freevpn.me"
 
 #
@@ -58,25 +61,12 @@ class OpenVPN:
             else:
                 return system("rasdial "+vpnName+" /disconnect")
         else:
-            removeRouteCmd = "VPNI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
-            removeRouteCmd += "DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'` && "
-            removeRouteCmd += "VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $2}'` && "
+            print("disconnecting")
+            removeRouteCmd = "DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'` && "
             removeRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
-
-            removeRouteCmd += "echo DI: $DI && "
-            removeRouteCmd += "echo DGW: $DGW && "
-            removeRouteCmd += "echo VPNI: $VPNI && "
-            removeRouteCmd += "echo VPNGW: $VPNGW && "
-
-            # removeRouteCmd += "sudo route add default gw $DGW dev $DI && "
-            # removeRouteCmd += "sudo route del default gw $VPNGW dev $VPNI"
-
-            removeRouteCmd += ""
-
+            removeRouteCmd += "sudo route add default gw $DGW dev $DI"
             print("cmd", removeRouteCmd, "|")
-
             system(removeRouteCmd)
-            # self.removeVPN()
         
     def removeVPN(self, vpnName=''):
         if "win" in sys.platform:
@@ -85,6 +75,7 @@ class OpenVPN:
             return system("powershell " + cmd)
         else:
             return system("killall pppd")
+            
     def getPublicIP(self):
         rs = requests.get("http://www.findip.kr/where.php", verify=False)
         if rs.status_code != 200: raise ValueError
@@ -95,13 +86,13 @@ class OpenVPN:
     def connect(self, vpnName=''):
         try:
             # start windows
-            system("echo off")
             for url in self.homepages:
                 vpnName = vpnName if vpnName else str(uuid.uuid4()).split("-")[4]
                 self.updateAccount(url)
                 print("Disconnecting All VPN's")
                 
                 if "win" in sys.platform:
+                    system("echo off")
                     self.disconnect(all=True)
                     cmd = 'Add-VpnConnection '
                     cmd += '-Name "'+vpnName+'" '
@@ -118,9 +109,10 @@ class OpenVPN:
                     if checkVPN == 623 or checkVPN ==0: system("powershell " + cmd)
                     connectcmd = "rasdial "+ vpnName + ' "' + self.account['id'] + '" "' + self.account['pw']+'"'
                     connectCode = system(connectcmd)
-
+                    
+                    print("this debug : ", self.getPublicIP() == self.account['host'])
                     if connectCode == 807: self.removeVPN(vpnName); print("Re connectting... "); continue
-                    elif proc.getPublicIP() == self.account['host']: print("connected!")
+                    elif self.getPublicIP() == self.account['host']: print("connected!")
                     else: print("conneciton Failed")
                     try:
                         system("cls")
@@ -150,7 +142,9 @@ class OpenVPN:
                     else:
                         if not Path("/usr/sbin/pptpsetup").exists(): system("apt update && apt install pptp-linux && apt autoremove")
                         print("[+] Start connecting FreeVPN")
+                        
                         system("sudo pptpsetup --create {0} --server {1} --username pptp --password {2} --start --encrypt".format(vpnName, self.account['host'], self.account['pw']))
+                        
                         setRouteCmd = "DI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
                         setRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
                         setRouteCmd += "VPNI=`route -n | egrep -v UGH | grep UH | awk '{print $8}'` && "
@@ -161,7 +155,7 @@ class OpenVPN:
                         setRouteCmd += "echo VPNI: $VPNI && "
                         setRouteCmd += "echo VPNGW: $VPNGW && "
 
-                        setRouteCmd += "sudo route add default gw $VPNGW  dev $VPNI && "
+                        setRouteCmd += "sudo route add default gw $VPNGW dev $VPNI && "
                         setRouteCmd += "sudo route del default gw $DGW dev $DI"
                         
                         print(self.account)
@@ -173,13 +167,13 @@ class OpenVPN:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
-                            # self.removeVPN(vpnName)
+                            self.removeVPN(vpnName)
                             print("Disconnected!! & Remove VPN")
                             sys.exit(0)
                         finally:
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
-                            # self.removeVPN(vpnName)
+                            self.removeVPN(vpnName)
                             print("Disconnected!! & Remove VPN")
                             print("exit")
                             sys.exit(0)
