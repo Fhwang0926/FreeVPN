@@ -60,7 +60,7 @@ class OpenVPN:
         else:
             removeRouteCmd = "VPNI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
             removeRouteCmd += "VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $2}'` && "
-            removeRouteCmd += "DI=`route -n | grep UGH | awk '{print $8}'` && "
+            removeRouteCmd += "DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'` && "
             removeRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
 
             removeRouteCmd += "echo DI: $DI && "
@@ -70,6 +70,8 @@ class OpenVPN:
 
             removeRouteCmd += "sudo route add default gw $DGW dev $DI && "
             removeRouteCmd += "sudo route del default gw $VPNGW dev $VPNI"
+
+            print("cmd", removeRouteCmd, "|")
 
             system(removeRouteCmd)
             self.removeVPN()
@@ -139,6 +141,7 @@ class OpenVPN:
                         sys.exit(0)
                 else:
                     # start linux
+                    print(self.account)
                     if self.prompt_sudo() != 0:
                         print("the user wasn't authenticated as a sudoer")
                         sys.exit(0)
@@ -158,7 +161,8 @@ class OpenVPN:
 
                         setRouteCmd += "sudo route add default gw $VPNGW  dev $VPNI && "
                         setRouteCmd += "sudo route del default gw $DGW dev $DI"
-                        print("error code : ", )
+                        
+                        print(self.account)
                         if system(setRouteCmd) > 0: continue
                         try:
                             system("clear")

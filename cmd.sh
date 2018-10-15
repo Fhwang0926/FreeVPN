@@ -20,7 +20,7 @@ route del default gw $DGW dev $DI
 disconnect
 VPNI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'`
 VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $2}'`
-DI=`route -n | grep UGH | awk '{print $8}'`
+DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'`
 DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'`
 
 echo DI: $DI
