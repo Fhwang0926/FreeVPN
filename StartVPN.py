@@ -59,8 +59,8 @@ class OpenVPN:
                 return system("rasdial "+vpnName+" /disconnect")
         else:
             removeRouteCmd = "VPNI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
-            removeRouteCmd += "VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $2}'` && "
             removeRouteCmd += "DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'` && "
+            removeRouteCmd += "VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $2}'` && "
             removeRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
 
             removeRouteCmd += "echo DI: $DI && "
@@ -68,13 +68,15 @@ class OpenVPN:
             removeRouteCmd += "echo VPNI: $VPNI && "
             removeRouteCmd += "echo VPNGW: $VPNGW && "
 
-            removeRouteCmd += "sudo route add default gw $DGW dev $DI && "
-            removeRouteCmd += "sudo route del default gw $VPNGW dev $VPNI"
+            # removeRouteCmd += "sudo route add default gw $DGW dev $DI && "
+            # removeRouteCmd += "sudo route del default gw $VPNGW dev $VPNI"
+
+            removeRouteCmd += ""
 
             print("cmd", removeRouteCmd, "|")
 
             system(removeRouteCmd)
-            self.removeVPN()
+            # self.removeVPN()
         
     def removeVPN(self, vpnName=''):
         if "win" in sys.platform:
@@ -171,7 +173,7 @@ class OpenVPN:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
                             self.disconnect()
-                            self.removeVPN(vpnName)
+                            # self.removeVPN(vpnName)
                             print("Disconnected!! & Remove VPN")
                             sys.exit(0)
                         finally:
