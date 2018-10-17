@@ -137,7 +137,7 @@ class OpenVPN:
                         sys.exit(0)
                 else:
                     # start linux
-                    print(self.account)
+                    if self.debug: print(self.account)
                     if self.prompt_sudo() != 0:
                         print("the user wasn't authenticated as a sudoer")
                         sys.exit(0)
