@@ -15,13 +15,14 @@ import subprocess
 
 class OpenVPN:
 
-    def __init__(self):
+    def __init__(self, debug=False):
         self.account = {}
         self.homepages = []
         self.reg = re.compile(r'(\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b)|(Username:.+li)|(Password:.+li)')
         self.regUrl = re.compile(r'https?://(www.)?freevpn\..*\.?[a-zA-Z]$')
         self.getServerList()
         self.netChecker = ping.PING()
+        self.debug = debug
 
     def getServerList(self):
         rs = requests.get("https://freevpn.me/accounts/", verify=False)
@@ -131,6 +132,7 @@ class OpenVPN:
                         print("Disconnected!! & Remove VPN")
                         sys.exit(0)
                     finally:
+                        system("echo on")
                         print("exit")
                         sys.exit(0)
                 else:
@@ -150,15 +152,14 @@ class OpenVPN:
                         setRouteCmd += "VPNI=`route -n | egrep -v UGH | grep UH | awk '{print $8}'` && "
                         setRouteCmd += "VPNGW=`route -n | grep $VPNI | head -n 1 | awk '{print $1}'` && "
 
-                        setRouteCmd += "echo DI: $DI && "
-                        setRouteCmd += "echo DGW: $DGW && "
-                        setRouteCmd += "echo VPNI: $VPNI && "
-                        setRouteCmd += "echo VPNGW: $VPNGW && "
+                        if self.debug: setRouteCmd += "echo DI: $DI && "
+                        if self.debug: setRouteCmd += "echo DGW: $DGW && "
+                        if self.debug: setRouteCmd += "echo VPNI: $VPNI && "
+                        if self.debug: setRouteCmd += "echo VPNGW: $VPNGW && "
 
                         setRouteCmd += "sudo route add default gw $VPNGW dev $VPNI && "
                         setRouteCmd += "sudo route del default gw $DGW dev $DI"
                         
-                        print(self.account)
                         if system(setRouteCmd) > 0: continue
                         try:
                             system("clear")
@@ -189,7 +190,7 @@ class OpenVPN:
         return ret
 
 if __name__ == '__main__':
-    proc = OpenVPN()
+    proc = OpenVPN(True)
     proc.connect()
 
 
