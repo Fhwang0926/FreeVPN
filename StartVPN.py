@@ -163,7 +163,8 @@ class OpenVPN:
                         if system(setRouteCmd) > 0: continue
                         try:
                             system("clear")
-                            self.netChecker.run_th_ping("8.8.8.8")
+                            system('ping 8.8.8.8')
+                            # self.netChecker.run_th_ping("8.8.8.8")
                         except Exception as e:
                             print("Error : ", e)
                             print("Start disconnectiong.....wait for")
