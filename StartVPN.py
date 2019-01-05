@@ -64,6 +64,7 @@ class OpenVPN:
         else:
             print("disconnecting")
             system('down.sh')
+            system('rm -rf down.sh')
             # removeRouteCmd = "DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'` && "
             # removeRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
             # removeRouteCmd += "sudo route add default gw $DGW dev $DI &&"
@@ -166,10 +167,10 @@ class OpenVPN:
 
                         setRouteCmd += "sudo route add default gw $VPNGW dev $VPNI && "
                         setRouteCmd += "sudo route del default gw $DGW dev $DI && "
-                        setRouteCmd += "echo sudo route del default gw $VPNGW dev $VPNI  > down.sh"
+                        setRouteCmd += "echo sudo route del default gw $VPNGW dev $VPNI  > down.sh && "
                         setRouteCmd += "echo sudo route add default gw $DGW dev $DI  >> down.sh"
                         
-                        if system(setRouteCmd) > 0: system("rm down.sh"); continue
+                        if system(setRouteCmd) > 0: system("rm -rf down.sh"); continue
                         else: os.chmod("down.sh", 744)
                         try:
                             system("clear")
