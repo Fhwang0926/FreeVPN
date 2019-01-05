@@ -166,7 +166,8 @@ class OpenVPN:
 
                         setRouteCmd += "sudo route add default gw $VPNGW dev $VPNI && "
                         setRouteCmd += "sudo route del default gw $DGW dev $DI && "
-                        setRouteCmd += "sudo route del default gw $VPNGW dev $VPNI && sudo route add default gw $DGW dev $DI > down.sh"
+                        setRouteCmd += "echo sudo route del default gw $VPNGW dev $VPNI  > down.sh"
+                        setRouteCmd += "echo sudo route add default gw $DGW dev $DI  >> down.sh"
                         
                         if system(setRouteCmd) > 0: system("rm down.sh"); continue
                         else: os.chmod("down.sh", 744)
