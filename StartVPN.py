@@ -63,11 +63,14 @@ class OpenVPN:
                 return system("rasdial "+vpnName+" /disconnect")
         else:
             print("disconnecting")
-            removeRouteCmd = "DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'` && "
-            removeRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
-            removeRouteCmd += "sudo route add default gw $DGW dev $DI"
-            print("cmd", removeRouteCmd, "|")
-            system(removeRouteCmd)
+            system('down.sh')
+            # removeRouteCmd = "DI=`route -n | grep UGH | head -n 1 | awk '{print $8}'` && "
+            # removeRouteCmd += "DGW=`route -n | grep $DI | head -n 1 | awk '{print $2}'` && "
+            # removeRouteCmd += "sudo route add default gw $DGW dev $DI &&"
+            # removeRouteCmd += "sudo route del default gw $VPNGW dev $VPNI"
+            # print("cmd", removeRouteCmd, "|")
+            # system(removeRouteCmd)
+            system('sudo /etc/init.d/networking restart')
         
     def removeVPN(self, vpnName=''):
         if "win" in sys.platform:
@@ -144,7 +147,11 @@ class OpenVPN:
                     else:
                         if not Path("/usr/sbin/pptpsetup").exists(): system("apt update && apt install pptp-linux && apt autoremove")
                         print("[+] Start connecting FreeVPN")
-                        
+
+                        # copy default setting
+                        if not Path("/etc/ppp/chap-secrets.backup").exists():
+                            system('cp /etc/ppp/chap-secrets /etc/ppp/chap-secrets.backup')
+                        system("echo # before setting is 'chap-secrets.backup' > /etc/ppp/chap-secrets")
                         system("sudo pptpsetup --create {0} --server {1} --username pptp --password {2} --start --encrypt".format(vpnName, self.account['host'], self.account['pw']))
                         
                         setRouteCmd = "DI=`route -n | egrep -v UGH | grep UG | awk '{print $8}'` && "
@@ -158,9 +165,11 @@ class OpenVPN:
                         if self.debug: setRouteCmd += "echo VPNGW: $VPNGW && "
 
                         setRouteCmd += "sudo route add default gw $VPNGW dev $VPNI && "
-                        setRouteCmd += "sudo route del default gw $DGW dev $DI"
+                        setRouteCmd += "sudo route del default gw $DGW dev $DI && "
+                        setRouteCmd += "sudo route del default gw $VPNGW dev $VPNI && sudo route add default gw $DGW dev $DI > down.sh"
                         
-                        if system(setRouteCmd) > 0: continue
+                        if system(setRouteCmd) > 0: system("rm down.sh"); continue
+                        else: os.chmod("down.sh", 744)
                         try:
                             system("clear")
                             system('ping 8.8.8.8')
